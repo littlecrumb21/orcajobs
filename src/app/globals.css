@@ -1,0 +1,212 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Solent theme tokens (locked) ─────────────────────────────────────────── */
+:root {
+  --bg:          #f6f4ef;
+  --bg-2:        #ffffff;
+  --bg-soft:     #ece8df;
+  --ink:         #0f1d2c;
+  --ink-2:       #2c3a4a;
+  --muted:       #6e7886;
+  --line:        rgba(15, 29, 44, 0.10);
+  --line-2:      rgba(15, 29, 44, 0.18);
+  --card:        #ffffff;
+  --accent:      #ff6a4d;
+  --accent-ink:  #ffffff;
+  --accent-soft: #ffe4dc;
+  --good:        #1f8a5b;
+  --warn:        #c89324;
+  --bad:         #c0473d;
+  --chip:        #eee9de;
+
+  --radius-s: 6px;
+  --radius:   10px;
+  --radius-l: 18px;
+
+  --shadow-s: 0 1px 0 rgba(15,29,44,.04);
+  --shadow:   0 4px 18px -8px rgba(15,29,44,.18), 0 1px 0 rgba(15,29,44,.04);
+  --shadow-l: 0 22px 60px -28px rgba(15,29,44,.32), 0 2px 0 rgba(15,29,44,.05);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; color: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; color: inherit; font-size: inherit; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ── Typography ────────────────────────────────────────────────────────────── */
+.display, .h1, .h2, .h3 {
+  font-family: "Newsreader", Georgia, serif;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.h1 { font-size: 64px; font-weight: 400; letter-spacing: -0.025em; line-height: 1.02; }
+.h2 { font-size: 40px; font-weight: 400; }
+.h3 { font-size: 24px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; }
+.h4 { font-weight: 600; font-size: 17px; letter-spacing: -0.005em; }
+.lede { font-size: 18px; color: var(--ink-2); line-height: 1.5; }
+.micro { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--muted); }
+.small { font-size: 13px; color: var(--muted); }
+.mono { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.84em; }
+
+/* ── Primitives ────────────────────────────────────────────────────────────── */
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+.btn {
+  appearance: none; border: 0;
+  background: var(--ink); color: var(--bg);
+  height: 40px; padding: 0 16px; border-radius: 999px;
+  font-weight: 500; font-size: 14px; letter-spacing: -0.005em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; white-space: nowrap;
+  transition: transform 0.08s ease, background 0.12s ease, opacity 0.12s ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line-2); }
+.btn.ghost:hover { background: var(--bg-soft); }
+.btn.subtle { background: var(--bg-soft); color: var(--ink); }
+.btn.sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.btn.lg { height: 48px; padding: 0 22px; font-size: 15px; }
+.btn.block { display: flex; width: 100%; }
+.btn[disabled], .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* ── Inputs ────────────────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.field > label .req { color: var(--accent); margin-left: 2px; }
+.input, .textarea, .select {
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line-2); border-radius: var(--radius);
+  padding: 11px 12px; font-size: 14px; line-height: 1.3;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  width: 100%;
+}
+.input:focus, .textarea:focus, .select:focus {
+  outline: none; border-color: var(--ink);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.textarea { min-height: 90px; resize: vertical; }
+.input.sm { padding: 8px 10px; font-size: 13px; }
+.field .error { font-size: 12px; color: var(--bad); margin-top: 2px; }
+
+/* ── Cards ─────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-s);
+}
+.card.elev { box-shadow: var(--shadow); }
+
+/* ── Badges ────────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 500;
+  background: var(--chip); color: var(--ink-2);
+}
+.badge.accent { background: var(--accent-soft); color: var(--accent); }
+.badge.good   { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.badge.warn   { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.badge.bad    { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.badge.outline { background: transparent; border: 1px solid var(--line-2); }
+
+/* ── Nav links ─────────────────────────────────────────────────────────────── */
+.nav-link {
+  font-size: 14px; color: var(--ink-2);
+  padding: 6px 10px; border-radius: 8px;
+  cursor: pointer; font-weight: 500;
+  transition: background 0.1s, color 0.1s;
+}
+.nav-link:hover, .nav-link.active { color: var(--ink); background: var(--bg-soft); }
+
+/* ── Side nav ──────────────────────────────────────────────────────────────── */
+.side-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px;
+  font-size: 14px; color: var(--ink-2); font-weight: 500;
+  transition: background 0.1s, color 0.1s;
+}
+.side-link:hover { background: var(--bg-soft); color: var(--ink); }
+.side-link.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+/* ── Job card ──────────────────────────────────────────────────────────────── */
+.job-card {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  cursor: pointer;
+}
+.job-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); border-color: var(--line-2); }
+
+/* ── Table ─────────────────────────────────────────────────────────────────── */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th { font-weight: 500; color: var(--muted); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.tbl td { padding: 14px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tbl tr:hover td { background: var(--bg-soft); }
+
+/* ── Progress bar ──────────────────────────────────────────────────────────── */
+.progress { position: relative; height: 6px; background: var(--bg-soft); border-radius: 99px; overflow: hidden; }
+.progress > div { position: absolute; inset: 0; background: var(--accent); transform-origin: left; transition: transform 0.25s ease; }
+
+/* ── Toast ─────────────────────────────────────────────────────────────────── */
+@keyframes slideup {
+  from { transform: translateY(20px) translateX(-50%); opacity: 0; }
+  to   { transform: translateY(0)    translateX(-50%); opacity: 1; }
+}
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg);
+  padding: 12px 18px; border-radius: 99px; font-size: 14px;
+  z-index: 200; animation: slideup 0.2s ease; box-shadow: var(--shadow-l);
+}
+
+/* ── Dividers ──────────────────────────────────────────────────────────────── */
+.hr { height: 1px; background: var(--line); border: 0; margin: 0; }
+.vr { width: 1px; background: var(--line); align-self: stretch; }
+
+/* ── Avatar ────────────────────────────────────────────────────────────────── */
+.avatar {
+  width: 36px; height: 36px; border-radius: 99px;
+  background: var(--bg-soft); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px; color: var(--ink-2);
+}
+
+/* ── Screen animation ──────────────────────────────────────────────────────── */
+@keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.screen { animation: fadein 0.22s ease both; }
+
+/* ── Specialism cards ──────────────────────────────────────────────────────── */
+.specialism-link { display: block; }
+.specialism-card { cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.specialism-link:hover .specialism-card { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+/* ── Footer links ──────────────────────────────────────────────────────────── */
+.footer-link { font-size: 14px; color: var(--ink-2); transition: color 0.1s; }
+.footer-link:hover { color: var(--ink); }
+
+/* ── Placeholder image slot ────────────────────────────────────────────────── */
+.ph {
+  background: repeating-linear-gradient(135deg, var(--bg-soft) 0 8px, transparent 8px 16px), var(--bg-2);
+  border: 1px dashed var(--line-2); border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-family: "Geist Mono", monospace;
+  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+}

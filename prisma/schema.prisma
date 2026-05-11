@@ -1,0 +1,347 @@
+// Orca Jobs — Prisma schema
+// UK/EU GDPR-conscious data model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Auth (NextAuth v5 required models) ──────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // bcrypt hash; null for OAuth users
+  role          UserRole  @default(APPLICANT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  applicantProfile ApplicantProfile?
+  employerProfile  EmployerProfile?
+  moderationLogs   ModerationLog[]   @relation("AdminLogs")
+  deletionRequests DataDeletionRequest[]
+}
+
+enum UserRole {
+  APPLICANT
+  EMPLOYER
+  ADMIN
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ── Applicant ────────────────────────────────────────────────────────────────
+
+model ApplicantProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Personal — stored minimally per GDPR data minimisation
+  firstName    String
+  lastName     String
+  phone        String?
+  location     String? // town/area only — not full address
+  linkedinUrl  String?
+  headline     String? // one-line professional summary
+  bio          String? @db.Text
+
+  // GDPR consent & retention
+  dataConsentDate   DateTime?
+  marketingConsent  Boolean   @default(false)
+  // Data is auto-deleted after this many days of inactivity (default 2 years)
+  retentionDays     Int       @default(730)
+
+  // Job preferences
+  jobTitle     String?
+  salaryMin    Int?
+  salaryMax    Int?
+  // "immediate" | "1_month" | "3_months" | "6_months"
+  availability String?
+  // stored as comma-separated: "full_time,part_time"
+  workTypes    String?
+  // "uk_citizen" | "eu_settled" | "visa_required" | "student_visa"
+  rightToWork  String?
+
+  // CV (uploaded to S3)
+  cvUrl        String?
+  cvFileName   String?
+  cvUploadedAt DateTime?
+
+  // Skills (comma-separated for simplicity; can migrate to relation later)
+  skills       String?
+
+  // Video intro (S3 URL)
+  videoIntroUrl String?
+
+  applications Application[]
+  workHistory  WorkHistory[]
+  savedJobs    SavedJob[]
+  jobAlerts    JobAlert[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkHistory {
+  id          String           @id @default(cuid())
+  profileId   String
+  profile     ApplicantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  company     String
+  title       String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean  @default(false)
+  description String?  @db.Text
+
+  createdAt DateTime @default(now())
+}
+
+// ── Employer ─────────────────────────────────────────────────────────────────
+
+model EmployerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyName String
+  companySlug String  @unique
+  logoUrl     String? // S3 URL
+  website     String?
+  description String? @db.Text
+  industry    String?
+  // "1-10" | "11-50" | "51-200" | "200+"
+  size        String?
+  location    String?
+  phone       String?
+
+  // Trust
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+
+  jobs Job[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Jobs ─────────────────────────────────────────────────────────────────────
+
+model Job {
+  id         String          @id @default(cuid())
+  employerId String
+  employer   EmployerProfile @relation(fields: [employerId], references: [id])
+
+  title       String
+  slug        String  @unique
+  description String  @db.Text
+  summary     String?
+
+  // "marine" | "hospitality" | "care" | "agri" | "trades" | "professional" | "other"
+  category     String
+  // "permanent" | "temporary" | "contract" | "apprenticeship"
+  contractType String
+  // "full_time" | "part_time" | "remote" | "hybrid"
+  workType     String
+
+  location    String
+  salaryMin   Int?
+  salaryMax   Int?
+  // "year" | "hour" | "day"
+  salaryPeriod   String  @default("year")
+  salaryPublic   Boolean @default(true)
+
+  // Listing tier & features
+  tier     JobTier   @default(BASIC)
+  featured Boolean   @default(false)
+
+  // Status lifecycle: DRAFT → (payment) → PENDING → (admin) → ACTIVE → EXPIRED
+  status      JobStatus @default(DRAFT)
+  publishedAt DateTime?
+  expiresAt   DateTime?
+
+  // Stripe payment reference
+  stripeSessionId String?
+  paidAt          DateTime?
+
+  applications Application[]
+  savedBy      SavedJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum JobTier {
+  BASIC    // £29 — 30 days
+  FEATURED // £59 — highlighted, top of category, 60 days
+  PREMIUM  // £99 — featured + logo + social push, 90 days
+}
+
+enum JobStatus {
+  DRAFT
+  PENDING  // paid, awaiting admin approval
+  ACTIVE
+  EXPIRED
+  CLOSED
+  REJECTED
+}
+
+// ── Applications ─────────────────────────────────────────────────────────────
+
+model Application {
+  id          String           @id @default(cuid())
+  jobId       String
+  job         Job              @relation(fields: [jobId], references: [id])
+  applicantId String
+  applicant   ApplicantProfile @relation(fields: [applicantId], references: [id])
+
+  coverLetter String? @db.Text
+  // CV snapshot at time of application (S3 URL)
+  cvUrl       String?
+
+  status ApplicationStatus @default(SUBMITTED)
+
+  // GDPR: employer access expires; applicant can request anonymisation
+  anonymisedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobId, applicantId])
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  VIEWED
+  SHORTLISTED
+  INTERVIEW
+  OFFERED
+  REJECTED
+  WITHDRAWN
+}
+
+// ── Saved jobs & alerts ───────────────────────────────────────────────────────
+
+model SavedJob {
+  id          String           @id @default(cuid())
+  applicantId String
+  applicant   ApplicantProfile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@unique([applicantId, jobId])
+}
+
+model JobAlert {
+  id          String           @id @default(cuid())
+  applicantId String
+  applicant   ApplicantProfile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  keywords  String?
+  category  String?
+  location  String?
+  salaryMin Int?
+  workTypes String? // comma-separated
+  // "daily" | "weekly"
+  frequency String  @default("weekly")
+  active    Boolean @default(true)
+  lastSentAt DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+// ── Payments ──────────────────────────────────────────────────────────────────
+
+model Payment {
+  id                  String    @id @default(cuid())
+  stripeSessionId     String    @unique
+  stripePaymentIntent String?
+
+  amountPence Int    // e.g. 2900 for £29
+  currency    String @default("gbp")
+  tier        JobTier
+  status      PaymentStatus @default(PENDING)
+
+  employerUserId String
+  jobId          String?
+
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+
+  @@index([employerUserId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+// ── Admin & GDPR ──────────────────────────────────────────────────────────────
+
+model ModerationLog {
+  id         String @id @default(cuid())
+  entityType String // "job" | "employer" | "applicant"
+  entityId   String
+  action     String // "approved" | "rejected" | "flagged" | "deleted"
+  reason     String?
+  adminId    String
+  admin      User   @relation("AdminLogs", fields: [adminId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+// Article 17 GDPR — right to erasure
+model DataDeletionRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  requestedAt DateTime  @default(now())
+  processedAt DateTime?
+  // "pending" | "processed" | "rejected"
+  status      String    @default("pending")
+  notes       String?
+}

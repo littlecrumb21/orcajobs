@@ -1,0 +1,21 @@
+# AWS Amplify build config for Next.js (SSR)
+# Deploy via AWS Amplify Console → connect your GitHub repo
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+        - npx prisma generate
+    build:
+      commands:
+        - npx prisma migrate deploy
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
