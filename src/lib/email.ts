@@ -1,10 +1,17 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "Orca Jobs <hello@orca.jobs>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://orca.jobs";
 
+// Lazily initialised so missing key doesn't crash the build
+function getResend() {
+  if (!process.env.RESEND_API_KEY) return null;
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
 async function send(to: string, subject: string, html: string) {
+  const resend = getResend();
+  if (!resend) return; // silently skip if not configured
   await resend.emails.send({ from: FROM, to, subject, html });
 }
 
